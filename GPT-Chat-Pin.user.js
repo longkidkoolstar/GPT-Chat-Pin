@@ -1,18 +1,20 @@
 // ==UserScript==
 // @name         GPT Chat Pin
-// @namespace    http://tampermonkey.net/
-// @version      0.1
+// @namespace    github.com/longkidkoolstar
+// @version      1.0.0
 // @description  Add a favorite icon to chatgpt.com conversations.
-// @author       You
+// @author       longkidkoolstar
+// @license      none
 // @match        https://chatgpt.com/*
 // @grant        GM.setValue
 // @grant        GM.getValue
 // @grant        GM.listValues
+
 // ==/UserScript==
 
 (function() {
     'use strict';
-    
+    console.log('GPT Chat Pin script loaded');
     // Add CSS styles with dark mode support
     const styles = `
         #favorite-chats-section {
@@ -149,16 +151,32 @@
                 event.preventDefault(); // Prevent navigation when clicking the icon
                 GM.getValue(`favorite_chat_${chatId}`, false).then(isFavorited => {
                     const newState = !isFavorited;
-                    GM.setValue(`favorite_chat_${chatId}`, newState).then(() => {
-                        favoriteIcon.textContent = newState ? '⭐' : '☆';
-                        if (newState) {
+                    let chatTitle = '';
+
+                    if (newState) {
+                        // Extract the chat title from the link text
+                        chatTitle = targetElement.textContent.trim();
+                        // Remove any emoji or special characters that might be part of the favorite icon
+                        chatTitle = chatTitle.replace(/[⭐☆]/g, '').trim();
+                    }
+
+                    if (newState) {
+                        // If favoriting, set the value
+                        GM.setValue(`favorite_chat_${chatId}`, { isFavorited: newState, title: chatTitle }).then(() => {
+                            favoriteIcon.textContent = '⭐';
                             favoriteIcon.classList.add('active');
-                        } else {
+                            console.log(`Chat ${chatId} favorited with title: ${chatTitle}`);
+                            displayFavoritedChats(); // Update favorite list
+                        });
+                    } else {
+                        // If unfavoriting, remove the value
+                        GM.deleteValue(`favorite_chat_${chatId}`).then(() => {
+                            favoriteIcon.textContent = '☆';
                             favoriteIcon.classList.remove('active');
-                        }
-                        console.log(`Chat ${chatId} favorited state: ${newState}`);
-                        displayFavoritedChats(); // Update favorite list
-                    });
+                            console.log(`Chat ${chatId} unfavorited and removed from storage`);
+                            displayFavoritedChats(); // Update favorite list
+                        });
+                    }
                 });
             });
 
@@ -201,7 +219,7 @@
         favoriteSection.innerHTML = '<h3><span style="color: #ffb400;">⭐</span> Favorite Chats</h3>'; // Clear and add title with star icon
 
         const allKeys = await GM.listValues();
-        const favoriteChatKeys = allKeys.filter(key => key.startsWith('favorite_chat_'));
+        const favoriteChatKeys = allKeys.filter(key => key.startsWith('favorite_chat_') && !key.startsWith('favorite_chat_title_'));
 
         if (favoriteChatKeys.length === 0) {
             favoriteSection.innerHTML += '<p style="color: #6e6e80; font-size: 14px; font-style: italic; margin: 8px 0;">No favorite chats yet.</p>';
@@ -210,21 +228,22 @@
 
         const ul = document.createElement('ul');
         for (const key of favoriteChatKeys) {
-            const isFavorited = await GM.getValue(key, false);
-            if (isFavorited) {
+            const favoriteData = await GM.getValue(key, null);
+            if (favoriteData && favoriteData.isFavorited) {
                 const chatId = key.replace('favorite_chat_', '');
-                // You might need to store chat titles or fetch them if available
-                // For now, just use the chat ID as a placeholder
-                // Try to get the chat title from the existing link text if possible
-                let chatTitle = `Chat ${chatId}`;
+                let chatTitle = favoriteData.title;
                 
-                // Look for a matching link in the sidebar to get its text
-                const existingLink = document.querySelector(`a[href='/c/${chatId}']`);
-                if (existingLink && existingLink.textContent.trim()) {
-                    // Extract just the text content, not including the favorite icon
-                    const linkText = existingLink.textContent.trim();
-                    // Remove any emoji or special characters that might be part of the favorite icon
-                    chatTitle = linkText.replace(/[⭐☆]/g, '').trim();
+                // If title is empty, try to get it from the sidebar
+                if (!chatTitle) {
+                    const existingLink = document.querySelector(`a[href='/c/${chatId}']`);
+                    if (existingLink && existingLink.textContent.trim()) {
+                        const linkText = existingLink.textContent.trim();
+                        chatTitle = linkText.replace(/[⭐☆]/g, '').trim();
+                        // Update the stored data with the found title
+                        GM.setValue(key, { isFavorited: true, title: chatTitle });
+                    } else {
+                        chatTitle = `Chat ${chatId}`;
+                    }
                 }
                 const li = document.createElement('li');
                 const link = document.createElement('a');
