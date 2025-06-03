@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         GPT Chat Pin
 // @namespace    github.com/longkidkoolstar
-// @version      1.0.0
-// @description  Add a favorite icon to chatgpt.com conversations.
+// @version      1.0.1
+// @description  Add persistent favorite/bookmark functionality to ChatGPT conversations with local storage support
 // @author       longkidkoolstar
 // @license      none
 // @match        https://chatgpt.com/*
