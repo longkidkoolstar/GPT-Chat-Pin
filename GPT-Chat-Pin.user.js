@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GPT Chat Pin
 // @namespace    github.com/longkidkoolstar
-// @version      1.0.1
+// @version      1.1.0
 // @description  Add persistent favorite/bookmark functionality to ChatGPT conversations with local storage support
 // @author       longkidkoolstar
 // @license      none
@@ -123,6 +123,110 @@
     styleElement.textContent = styles;
     document.head.appendChild(styleElement);
 
+    // Custom Alert Box Styles
+    const customAlertStyles = `
+        .custom-alert-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        .custom-alert-box {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            color: #202123;
+        }
+        .dark .custom-alert-box {
+            background-color: #343541;
+            color: #d1d5db;
+        }
+        .custom-alert-box h4 {
+            margin-top: 0;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        .custom-alert-box p {
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .custom-alert-buttons button {
+            background-color: #10a37f;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 0 10px;
+            transition: background-color 0.2s ease;
+        }
+        .custom-alert-buttons button:hover {
+            background-color: #0e8e6f;
+        }
+        .custom-alert-buttons button.cancel {
+            background-color: #dc3545;
+        }
+        .custom-alert-buttons button.cancel:hover {
+            background-color: #c82333;
+        }
+    `;
+    const customAlertStyleElement = document.createElement('style');
+    customAlertStyleElement.textContent = customAlertStyles;
+    document.head.appendChild(customAlertStyleElement);
+
+    // Custom Alert Box Function
+    function showCustomAlert(message, onConfirm) {
+        const overlay = document.createElement('div');
+        overlay.classList.add('custom-alert-overlay');
+
+        const alertBox = document.createElement('div');
+        alertBox.classList.add('custom-alert-box');
+
+        const title = document.createElement('h4');
+        title.textContent = 'Confirm Action';
+
+        const msg = document.createElement('p');
+        msg.textContent = message;
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.classList.add('custom-alert-buttons');
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.textContent = 'Confirm';
+        confirmBtn.addEventListener('click', () => {
+            document.body.removeChild(overlay);
+            onConfirm(true);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.classList.add('cancel');
+        cancelBtn.addEventListener('click', () => {
+            document.body.removeChild(overlay);
+            onConfirm(false);
+        });
+
+        buttonContainer.appendChild(cancelBtn);
+        buttonContainer.appendChild(confirmBtn);
+        alertBox.appendChild(title);
+        alertBox.appendChild(msg);
+        alertBox.appendChild(buttonContainer);
+        overlay.appendChild(alertBox);
+        document.body.appendChild(overlay);
+    }
+
     // Function to add the favorite icon to individual chat links
     function addFavoriteIcon() {
         const chatLinks = document.querySelectorAll("a[href^='/c/']"); // Select all chat links
@@ -170,11 +274,15 @@
                         });
                     } else {
                         // If unfavoriting, remove the value
-                        GM.deleteValue(`favorite_chat_${chatId}`).then(() => {
-                            favoriteIcon.textContent = '☆';
-                            favoriteIcon.classList.remove('active');
-                            console.log(`Chat ${chatId} unfavorited and removed from storage`);
-                            displayFavoritedChats(); // Update favorite list
+                        showCustomAlert('Are you sure you want to unfavorite this chat?', (confirmed) => {
+                            if (confirmed) {
+                                GM.deleteValue(`favorite_chat_${chatId}`).then(() => {
+                                    favoriteIcon.textContent = '☆';
+                                    favoriteIcon.classList.remove('active');
+                                    console.log(`Chat ${chatId} unfavorited and removed from storage`);
+                                    displayFavoritedChats(); // Update favorite list
+                                });
+                            }
                         });
                     }
                 });
