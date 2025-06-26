@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GPT Chat Pin
 // @namespace    github.com/longkidkoolstar
-// @version      1.1.0
+// @version      1.1.1
 // @description  Add persistent favorite/bookmark functionality to ChatGPT conversations with local storage support
 // @author       longkidkoolstar
 // @license      none
@@ -68,6 +68,14 @@
             padding: 6px 10px;
             border-radius: 6px;
             transition: all 0.2s ease;
+        }
+        
+        #favorite-chats-section a span {
+            display: inline-block;
+            max-width: 17ch; /* Roughly 20 characters */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .dark #favorite-chats-section a {
@@ -356,7 +364,12 @@
                 const li = document.createElement('li');
                 const link = document.createElement('a');
                 link.href = `/c/${chatId}`;
-                link.textContent = chatTitle;
+                
+                // Create a span to hold the text for proper truncation
+                const titleSpan = document.createElement('span');
+                titleSpan.textContent = chatTitle;
+                
+                link.appendChild(titleSpan);
                 li.appendChild(link);
                 ul.appendChild(li);
             }
